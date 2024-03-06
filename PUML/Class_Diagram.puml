@@ -1,0 +1,99 @@
+@startuml Car_Rental_Booking_Class_Diagram
+left to right direction
+package "Rental"{
+    class "<<Application>>\nCar_Rental_Booking" as RentalService{}
+
+    class "<<Resource>>\nCars" as ResourceCars{
+        <<GET>> +getCars():Car
+        <<POST>> +createCar():Car
+    }
+
+    class "<<Resource>>\nCar" as ResourceCar {
+        <<GET>> +getCar(): Car
+        <<PUT>> +updateCar(): Car
+        <<DELETE>> +deleteCar(): void
+    }
+
+    class "<<Representation>>\nCar" as RepresentationCar {
+        -car_brand
+        -car_model
+        -color
+        -license
+        -provider
+        -createdAt
+    }
+
+
+    class "<<Resource>>\nAuth" as ResourceAuthRegister {
+        <<POST>> +register(): token
+    }
+
+     class "<<Resource>>\nUsers" as ResourceAuthLogin{
+         <<POST>> +login(): token
+    }
+     class "<<Resource>>\nUsers" as ResourceAuthLogout{
+       <<GET>> +logout(): void
+    }
+     class "<<Resource>>\nUsers" as ResourceAuthGetMe{
+        <<GET>> +getMe(): User
+    }
+
+    class "<<Representation>>\nUser" as RepresentationUser {
+        -name
+        -tel
+        -email
+        -password
+        -role
+        -createdAt
+        
+    }
+
+    
+    class "<<Resource>>\nBookings" as ResourceBookings{
+        <<GET>> +getBookings(): Booking
+        <<POST>> +createBooking(): Booking
+        
+    }
+
+     class "<<Resource>>\nBooking" as ResourceBooking {
+        <<GET>> +getBooking(): Booking
+        <<POST>> +addBooking() : Booking
+        <<PUT>> +updateBooking(): Booking
+        <<DELETE>> +deleteBooking(): void
+    }
+
+    class "<<Representation>>\nBooking" as RepresentationBooking {
+        -user
+        -car
+        -provider
+        -PickUpDate
+        -DropOffDate
+        -createdAt
+    }
+
+    class "<<Resource>>\nBooking" as ResourceAllBooking {
+        <<GET>> +getBookings(): Booking
+    }
+}
+
+RentalService ..> ResourceCars:"/cars\n<<Path>>"
+ResourceCars ..> ResourceCar: "/{CarId}\n<<Path>>"
+ResourceCar ..> RepresentationCar: "<<use>>"
+ResourceCar ..> ResourceAllBooking: "/bookings\n<<Path>>"
+ResourceAllBooking ..> RepresentationBooking: "<<use>>"
+
+RentalService ..> ResourceBookings:"/bookings\n<<Path>>"
+ResourceBookings ..> ResourceBooking: "/{bookingId}\n<<Path>>"
+ResourceBooking ..> RepresentationBooking: "<<use>>"
+
+RentalService ..> ResourceAuthLogin:"/auth/login\n<<Path>>"
+RentalService ..> ResourceAuthLogout:"/auth/logout\n<<Path>>"
+RentalService ..> ResourceAuthRegister:"/auth/register\n<<Path>>"
+RentalService ..> ResourceAuthGetMe:"/auth/me\n<<Path>>"
+
+ResourceAuthGetMe ..> RepresentationUser: "<<use>>"
+ResourceAuthLogin ..> RepresentationUser: "<<use>>"
+ResourceAuthLogout ..> RepresentationUser: "<<use>>"
+ResourceAuthRegister ..> RepresentationUser: "<<use>>"
+
+@enduml

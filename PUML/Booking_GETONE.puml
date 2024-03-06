@@ -1,0 +1,32 @@
+@startuml Manage Booking (GET ONE)
+
+header Car-Booking-System Sequence Diagram
+title "Manage Booking (GET ONE)"
+
+participant "Client" as client
+participant "<<javaScript>>\n:server" as server
+participant "<<router>>\n:bookings" as bookingRouter
+participant "<<middlewares>>\n:authMiddleware" as authMiddleware
+participant "<<controllers>>\n:bookings" as bookingController
+participant "<<model>>\n:Booking" as bookingModel
+database "<<MongoDB>>\n:bookings" as bookingDatabase
+
+client -> server ++: req.get('/bookings/:id')
+server -> bookingRouter ++: app.use('/bookings', bookings)
+bookingRouter -> authMiddleware ++: protect()
+alt user is authenticated
+    authMiddleware -> bookingController ++: getBookingById()
+    bookingController -> bookingModel ++: Booking.findById(req.params.id).populate({ path: 'car', select: 'car_brand car_model color license', }).populate({ path: 'provider', select: 'name tel email' })
+    bookingModel -> bookingDatabase ++: bookingSchema
+    bookingDatabase --> bookingModel --: booking
+    bookingController <-- bookingModel --: booking
+    alt booking is exist
+        bookingController -> client --: response
+    else booking is not exist
+        bookingController -> client --: error response
+    end
+else user is not authenticated
+    authMiddleware -> client --: error response
+end
+
+@enduml

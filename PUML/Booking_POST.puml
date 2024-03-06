@@ -1,0 +1,42 @@
+@startuml Manage Booking (POST)
+
+header Car-Booking-System Sequence Diagram
+title "Manage Booking (POST)"
+
+participant "Client" as client
+participant "<<javaScript>>\n:server" as server
+participant "<<routes>>\n:bookings" as bookingRouter
+participant "<<middlewares>>\n:authMiddleware" as authMiddleware
+participant "<<controllers>>\n:bookings" as bookingController
+participant "<<models>>\n:Booking" as bookingModel
+database "<<MongoDB>>\n:bookings" as bookingDatabase
+
+client -> server ++: req.post('/:carId/bookings')
+server -> bookingRouter ++: app.use('/bookings', bookings)
+bookingRouter -> authMiddleware ++: protect()
+alt user is authenticated
+    authMiddleware -> bookingController ++: createBooking()
+    bookingController -> bookingModel ++: Booking.find({user : req.user.id, provider : car.provider})
+    bookingModel -> bookingDatabase ++: bookingSchema
+    bookingDatabase --> bookingModel --: existedBooking
+    bookingController <-- bookingModel --: existedBooking
+    alt existedBooking.length not lessthan 3 and req.user.role is not "admin"
+        bookingController -> client --: error response
+    end
+    bookingController -> carModel ++: Massage.findById(req.params.carId)
+    carModel -> carDatabase ++: carSchema
+    carDatabase --> carModel --: car
+    bookingController <-- carModel --: car
+    alt car is not exist
+        bookingController -> client --: error response
+    end
+    bookingController -> bookingModel ++: Booking.create(req.body)
+    bookingModel -> bookingDatabase ++: bookingSchema
+    bookingDatabase --> bookingModel --: booking
+    bookingController <-- bookingModel --: booking
+    bookingController -> client --: response
+else user is not authenticated
+    authMiddleware -> client --: error response
+end
+
+@enduml

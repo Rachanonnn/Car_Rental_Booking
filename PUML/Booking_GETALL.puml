@@ -1,0 +1,61 @@
+@startuml Manage Booking (GET)
+
+header Car-Booking-System Sequence Diagram
+title "Manage Booking (GET)"
+
+participant "Client" as client
+participant "<<javaScript>>\n:server" as server
+participant "<<routes>>\n:bookings" as bookingRouter
+participant "<<middlewares>>\n:authMiddleware" as authMiddleware
+participant "<<controllers>>\n:bookings" as bookingController
+participant "<<models>>\n:Booking" as bookingModel
+database "<<MongoDB>>\n:bookings" as bookingDatabase
+
+client -> server ++: req.get('/bookings')
+server -> bookingRouter ++: app.use('/bookings', bookings)
+bookingRouter -> authMiddleware ++: protect()
+alt user is authenticated
+    authMiddleware -> bookingController ++: getBookings()
+    alt req.user.role is "admin"
+        alt req have req.params.carId
+            bookingController -> bookingModel ++: Booking.find({car:req.params.carId}).populate({path: 'user', select: 'name tel email'}).populate({path: 'car', select: 'car_brand car_model color license',}).populate({path: 'provider', select: 'name tel email'})
+            bookingModel -> bookingDatabase ++: bookingSchema
+            bookingDatabase --> bookingModel --: booking
+            bookingController <-- bookingModel --: booking
+        else req does not have req.params.carId
+            bookingController -> bookingModel : Booking.find().populate({ path: 'user', select: 'name tel email' }).populate({ path: 'car', select: 'car_brand car_model color license', }).populate({ path: 'provider', select: 'name tel email' })
+            bookingModel -> bookingDatabase ++: bookingSchema
+            bookingDatabase --> bookingModel --: booking
+            bookingController <-- bookingModel --: booking
+        end
+    else req.user.role is not "admin"
+        alt req.user.role is "user"
+            alt req have req.params.carId
+                bookingController -> bookingModel : Booking.find({ car: req.params.carId, user: req.user.id }).populate({ path: 'car', select: 'car_brand car_model color license', }).populate({ path: 'provider', select: 'name tel email' })
+                bookingModel -> bookingDatabase ++: bookingSchema
+                bookingDatabase --> bookingModel --: booking
+                bookingController <-- bookingModel --: booking
+            else req does not have req.params.carId
+                bookingController -> bookingModel : Booking.find({ user: req.user.id }).populate({ path: 'car', select: 'car_brand car_model color license', }).populate({ path: 'provider', select: 'name tel email' })
+                bookingModel -> bookingDatabase ++: bookingSchema
+                bookingDatabase --> bookingModel --: booking
+                bookingController <-- bookingModel --: booking
+        else req.user.role is not "user"
+            alt req have req.params.carId
+                bookingController -> bookingModel : Booking.find({ car: req.params.carId, provider: req.user.id }).populate({ path: 'car', select: 'car_brand car_model color license', }).populate({ path: 'user', select: 'name tel email' })
+                bookingModel -> bookingDatabase ++: bookingSchema
+                bookingDatabase --> bookingModel --: booking
+                bookingController <-- bookingModel --: booking
+            else req does not have req.params.carId
+                bookingController -> bookingModel : Booking.find({ provider: req.user.id }).populate({ path: 'car', select: 'car_brand car_model color license', }).populate({ path: 'user', select: 'name tel email' })
+                bookingModel -> bookingDatabase ++: bookingSchema
+                bookingDatabase --> bookingModel --: booking
+                bookingController <-- bookingModel --: booking
+            
+    end
+    bookingController -> client --: response
+else user is not authenticated
+    authMiddleware -> client --: error response
+end
+
+@enduml

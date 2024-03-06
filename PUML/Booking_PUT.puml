@@ -1,0 +1,39 @@
+@startuml Manage Booking (PUT)
+
+header Car-Booking-System Sequence Diagram
+title "Manage Booking (PUT)"
+
+participant "Client" as client
+participant "<<javaScript>>\n:server" as server
+participant "<<routes>>\n:bookings" as bookingRouter
+participant "<<middlewares>>\n:authMiddleware" as authMiddleware
+participant "<<controllers>>\n:bookings" as bookingController
+participant "<<models>>\n:Booking" as bookingModel
+database "<<MongoDB>>\n:bookings" as bookingDatabase
+
+client -> server ++: req.put('/bookings/:id')
+server -> bookingRouter ++: app.use('/bookings', bookings)
+bookingRouter -> authMiddleware ++: protect()
+alt user is authenticated
+    authMiddleware -> bookingController ++: updateBooking()
+    bookingController -> bookingModel ++: Booking.findById(req.params.id)
+    bookingModel -> bookingDatabase ++: bookingSchema
+    bookingDatabase --> bookingModel --: booking
+    bookingController <-- bookingModel --: booking
+    alt booking is not exist
+        bookingController -> client --: error response
+    else
+        alt booking.user.toString() is not req.user.id and req.user.role is not "admin"
+            bookingController -> client --: error response
+        else
+            bookingController -> bookingModel ++: Booking.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true })
+            bookingModel -> bookingDatabase ++: bookingSchema
+            bookingDatabase --> bookingModel --: booking
+            bookingController <-- bookingModel --: booking
+            bookingController -> client --: response
+    end
+else user is not authenticated
+    authMiddleware -> client --: error response
+end
+
+@enduml
